@@ -1,10 +1,10 @@
 /*
- * TODO More explanation
- * Let our code runs first, put our code in .init section
+ * Code in .init section will be called before the main() is called.
+ * Details in GCC Internals documentation(How Initialization Functions Are Handled)
  */
 .section .init
-.globl _start
-_starta:
+.globl _start	/* Define global symbol _start, make this symbol visible to ld */
+_start:
 /* 
  * store 0x20200000 into register r0
  * 0x20200000 is GPIO Controller Address
@@ -14,14 +14,15 @@ ldr r0,=0x20200000
 mov r1, #1        /* Move 1 into register 1 */
 lsl r1, #18       /* shift value in register 1 left by 18 places */
 
-/* Send value in register r1 to GPIO Controller 
+/*
+ * Send value in register r1 to GPIO Controller 
  * Enable 16th GPIO pin
  */ 
 str r1, [r0, #4]
 
 mov r1, #1
 lsl r1, #16
-str r1, [r0. #40] /* Turn the 16th pin off, the light will on */
+str r1, [r0, #40] /* Turn the 16th pin off, the light will on */
 
 loop$:
 b loop$
