@@ -36,14 +36,10 @@ bl SetGpio
 .unreq pinVal
 
 /*
- * Wait, repeat substract 1 in register 2, until value in register 2 became 0
+ * Wait 20 ticks
  */
-mov r2, #0x3F0000
-
-wait1$:
-        sub r2, #1
-        cmp r2, #0
-        bne wait1$
+mov r0, #20
+bl Wait
 
 /*
  * Turn off the light  
@@ -59,13 +55,10 @@ bl SetGpio
 .unreq pinVal
 
 /*
- * Wait2 is the same as wait1
+ * Wait 20 ticks
  */
-mov r2, #0x3F0000
-wait2$:
-        sub r2, #1
-        cmp r2, #0
-        bne wait2$
+mov r0, #20
+bl Wait
 
 /* Loop over this process*/
 b loop$
