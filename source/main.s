@@ -12,54 +12,40 @@ b main
 main: 
 mov sp, #0x8000 /* stack start at 0x8000, bottom of the stack address. */
 
-pinNum .req r0
-pinFunc .req r1
-mov pinNum, #16         /* Select 16th pin */
-mov pinFunc, #1         /* Select pin function 1 */
+mov r0, #16             /* Select 16th pin */
+mov r1, #1              /* Select pin function 1 */
 bl SetGpioFunction
-.unreq pinNum
-.unreq pinFunc
+
+ptrn .req r4
+ldr ptrn,=pattern       /* Load pattern label address into ptrn register */
+ldr ptrn,[ptrn]         /* Load value of address in ptrn register */
+seq .req r5             /* Register 5 for sequence position */
+mov seq, #0
+
 
 loop$:
 
-/*
- * Turn off GPIO 16th pin, the light will on
- * Address: GPIO Pin Output Clear 0(GPCLR0)
- * Register value: Clean GPIO pin 16
- */
-pinNum .req r0
-pinVal .req r1
-mov pinNum, #16
-mov pinVal, #0
+mov r0, #16             /* Select 16th pin */
+mov r1, #1
+lsl r1, seq
+and r1, ptrn            /* If current part of position is a 1, r1 will be a non-zero value */
 bl SetGpio
-.unreq pinNum
-.unreq pinVal
 
 /*
- * Wait 20 ticks
+ * Wait 250000 ticks
  */
-mov r0, #20
+ldr r0, =250000         /* instruction mov r0, #val need value in range 0 - 65535, so we can not use mov here */
 bl Wait
 
-/*
- * Turn off the light  
- * Address: GPIO Pin Output Set 0(GPSET0)
- * Register value: Set 0 GPIO pin 16
- */
-pinNum .req r0
-pinVal .req r1
-mov pinNum, #16
-mov pinVal, #1
-bl SetGpio
-.unreq pinNum
-.unreq pinVal
-
-/*
- * Wait 20 ticks
- */
-mov r0, #20
-bl Wait
+add seq, #1
+and seq, #0b11111       /* Reset seq to 0 if it reaches 32 */
 
 /* Loop over this process*/
 b loop$
+.unreq ptrn
+.unreq seq 
 
+.section .data
+.align 2
+pattern:
+.int 0b11111111101010100010001000101010 /* Morse code, 0 for turn off LED, 1 for turn on LED */
