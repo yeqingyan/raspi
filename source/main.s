@@ -12,40 +12,49 @@ b main
 main: 
 mov sp, #0x8000 /* stack start at 0x8000, bottom of the stack address. */
 
-mov r0, #16             /* Select 16th pin */
-mov r1, #1              /* Select pin function 1 */
-bl SetGpioFunction
+mov r0, #1024   /* Width */
+mov r1, #768    /* Height */
+mov r2, #16     /* Color depth */
+bl InitialiseFrameBuffer
 
-ptrn .req r4
-ldr ptrn,=pattern       /* Load pattern label address into ptrn register */
-ldr ptrn,[ptrn]         /* Load value of address in ptrn register */
-seq .req r5             /* Register 5 for sequence position */
-mov seq, #0
+teq r0, #0
+bne noError$    /* Turn on LED, if met error */
 
-
-loop$:
-
-mov r0, #16             /* Select 16th pin */
+mov r0, #16     /* Prepare LED */
 mov r1, #1
-lsl r1, seq
-and r1, ptrn            /* If current part of position is a 1, r1 will be a non-zero value */
+bl SetGpioFunction      /* Turn on LED */
+mov r0, #16
+mov r1, #0 
 bl SetGpio
 
-/*
- * Wait 250000 ticks
- */
-ldr r0, =250000         /* instruction mov r0, #val need value in range 0 - 65535, so we can not use mov here */
-bl Wait
+error$:
+b error$
 
-add seq, #1
-and seq, #0b11111       /* Reset seq to 0 if it reaches 32 */
+noError$:
+fbInfoAddr .req r4
+mov fbInfoAddr, r0
 
-/* Loop over this process*/
-b loop$
-.unreq ptrn
-.unreq seq 
+render$:
+        fbAddr .req r3
+        ldr fbAddr, [fbInfoAddr, #32]
+        
+        colour .req r0
+        y .req r1
+        mov y, #768
+        drawRows$:
+                x .req r2
+                mov x, #1024
+                drawPixels$:
+                        strh colour, [fbAddr]
+                        add fbAddr, #2
+                        sub x, #1
+                        teq x, #0
+                        bne drawPixels$
+                sub y, #1
+                add colour, #1
+                teq y, #0
+                bne drawRows$
+        b render$
 
-.section .data
-.align 2
-pattern:
-.int 0b11111111101010100010001000101010 /* Morse code, 0 for turn off LED, 1 for turn on LED */
+.unreq fbAddr
+.unreq fbInfoAddr
