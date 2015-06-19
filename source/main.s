@@ -33,28 +33,52 @@ b error$
 noError$:
 fbInfoAddr .req r4
 mov fbInfoAddr, r0
+bl SetGraphicsAddress   /* Setup Graphic Adderss*/
 
-render$:
-        fbAddr .req r3
-        ldr fbAddr, [fbInfoAddr, #32]
-        
-        colour .req r0
-        y .req r1
-        mov y, #768
-        drawRows$:
-                x .req r2
-                mov x, #1024
-                drawPixels$:
-                        strh colour, [fbAddr]
-                        add fbAddr, #2
-                        sub x, #1
-                        teq x, #0
-                        bne drawPixels$
-                sub y, #1
-                add colour, #1
-                teq y, #0
-                bne drawRows$
-        b render$
+currentX .req r5
+currentY .req r6
+lastRandom .req r7
+colour .req r10
+lastX .req r8
+lastY .req r9
 
-.unreq fbAddr
-.unreq fbInfoAddr
+mov lastRandom, #0
+mov lastX, #0
+mov lastY, #0
+mov colour, #0
+
+drawRandomLine$:
+createRandom$:
+mov r0, lastRandom
+bl Random               /* Generate x-coordinate */
+mov currentX, r0
+bl Random               /* Generate y-coordinate */
+mov currentY, r0
+mov lastRandom, r0
+
+mov r0, colour
+add colour, #1
+lsl colour, #16
+lsr colour, #16         /* Reset color to 0 if it reaches 0xFFFF */
+bl SetForeColour
+
+mov r0, lastX
+mov r1, lastY
+lsr r2, currentX, #22   /* Convert x,y between 0 and 1023 */
+lsr r3, currentY, #22
+
+cmp r3, #768      /* If y larger than 767, get random again */
+bhs createRandom$
+
+mov lastX, r2   /* Update lastX, lastY */
+mov lastY, r3
+bl DrawLine     /* draw line from (currentX, currentY) to (lastX, lastY) */
+
+b drawRandomLine$
+
+.unreq currentX
+.unreq currentY
+.unreq lastRandom 
+.unreq colour
+.unreq lastX
+.unreq lastY
