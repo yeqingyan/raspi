@@ -7,6 +7,9 @@ foreColour:
 graphicsAddress:
 .int 0
 
+.align 4
+font:
+.incbin "font.bin"
 .section .text
 /*
  * SetForeColour
@@ -157,3 +160,141 @@ pixelLoop$:
 .unreq sy
 .unreq err
 
+/*
+ * DrawCharacter 
+ * -------------
+ * Parameters:
+ * r0: character
+ * r1: x
+ * r2: y
+ */
+.globl DrawCharacter
+DrawCharacter:
+push {r4, r5, r6, r7, r8, lr}
+Character .req r3
+px .req r4
+py .req r5
+
+mov Character, r0
+cmp Character, #127     /* character should less than 127*/
+movhi r0, #0            /* return error */
+movhi r1, #1    
+movhi pc, lr
+
+charAddress .req r6
+mov px, r1
+mov py, r2
+ldr charAddress, =font
+add charAddress, Character, lsl #4          /* set char base address*/
+
+bits .req r7
+bit .req r8
+RowLoop$:
+
+        ldrb bits, [charAddress]
+        mov bit, #8
+        BitLoop$:
+                subs bit, #1
+                blt BitLoopEnd$         /* If bit < 1, end BitLoop */
+                lsl bits, #1
+                tst bits, #0x100
+                beq BitLoop$
+
+                add r0, px, bit 
+                mov r1, py  
+                bl SetPixel             /* if bit is 1, draw it on screen */
+                
+                teq bit, #0             /* Never run into this line? */
+                bne BitLoop$
+        BitLoopEnd$:
+        .unreq bit
+        .unreq bits
+        add py, #1
+        add charAddress, #1
+        tst charAddress, #0b1111
+        bne RowLoop$
+
+.unreq Character
+.unreq charAddress
+.unreq px
+.unreq py
+width .req r0
+height .req r1
+mov width, #8
+mov height, #16
+pop {r4, r5, r6, r7, r8, pc}
+.unreq width
+.unreq height
+
+/*
+ * DrawString
+ * ----------
+ * Parameters:
+ * r0: string
+ * r1: length
+ * r2: x
+ * r3: y
+ */
+.globl DrawString
+DrawString:
+
+x .req r4
+y .req r5
+x0 .req r6
+String .req r7
+length .req r8
+char .req r9
+push {r4, r5, r6, r7, r8, r9, lr}
+
+mov String, r0
+mov length, r1
+mov x, r2
+mov y, r3
+
+mov x0, x
+
+PositionLoop$: 
+        subs length, #1
+        blt PositionLoopEnd$
+
+        ldrb char, [String]
+        add string, #1
+
+        mov r0, char
+        mov r1, x
+        mov r2, y
+        bl DrawCharacter
+        cwidth .req r0
+        cheight .req r1 
+        
+        teq char, #'\n'         /* New line */
+        moveq x, x0
+        addeq y, cheight
+        beq PositionLoop$
+        
+        teq char, #'\t'         /* Tab */
+        addne x, cwidth
+        bne PositionLoop$
+        
+        add cwidth, cwidth, lsl #2
+        x1 .req r1
+        mov x1, x0
+
+        TabLoop$:
+                add x1, cwidth
+                cmp x, x1
+                bge TabLoop$
+        mov x, x1
+        .unreq x1
+        b PositionLoop$
+PositionLoopEnd$:
+.unreq cwidth
+.unreq cheight
+
+pop {r4, r5, r6, r7, r8, r9, pc}
+.unreq x
+.unreq y
+.unreq x0
+.unreq String
+.unreq length
+.unreq char

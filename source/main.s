@@ -35,50 +35,14 @@ fbInfoAddr .req r4
 mov fbInfoAddr, r0
 bl SetGraphicsAddress   /* Setup Graphic Adderss*/
 
-currentX .req r5
-currentY .req r6
-lastRandom .req r7
-colour .req r10
-lastX .req r8
-lastY .req r9
-
-mov lastRandom, #0
-mov lastX, #0
-mov lastY, #0
-mov colour, #0
-
-drawRandomLine$:
-createRandom$:
-mov r0, lastRandom
-bl Random               /* Generate x-coordinate */
-mov currentX, r0
-bl Random               /* Generate y-coordinate */
-mov currentY, r0
-mov lastRandom, r0
-
-mov r0, colour
-add colour, #1
-lsl colour, #16
-lsr colour, #16         /* Reset color to 0 if it reaches 0xFFFF */
-bl SetForeColour
-
-mov r0, lastX
-mov r1, lastY
-lsr r2, currentX, #22   /* Convert x,y between 0 and 1023 */
-lsr r3, currentY, #22
-
-cmp r3, #768      /* If y larger than 767, get random again */
-bhs createRandom$
-
-mov lastX, r2   /* Update lastX, lastY */
-mov lastY, r3
-bl DrawLine     /* draw line from (currentX, currentY) to (lastX, lastY) */
-
-b drawRandomLine$
-
-.unreq currentX
-.unreq currentY
-.unreq lastRandom 
-.unreq colour
-.unreq lastX
-.unreq lastY
+mov r0, #9
+bl FindTag
+ldr r1, [r0]
+lsl r1, #2
+sub r1, #8
+add r0, #8
+mov r2, #0
+mov r3, #0
+bl DrawString
+loop$:
+b loop$
